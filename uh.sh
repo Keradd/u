@@ -7,7 +7,7 @@ WG_PORT="51820"
 CLIENT_NAME="client"
 CLIENT_CONF="${CLIENT_NAME}.conf"
 
-REQUIRED_PACKAGES=(wireguard ip6tables qrencode curl openssh-server)
+REQUIRED_PACKAGES=(wireguard iptables qrencode curl openssh-server)
 
 # Fungsi generate prefix ULA acak (fdxx:xxxx:xxxx::/64)
 generate_ula_subnet() {
@@ -40,7 +40,7 @@ for cmd in wg ip6tables qrencode curl sshd; do
   fi
 done
 
-# Enable IPv6 forwarding
+# Aktifkan IPv6 forwarding
 if ! grep -q "^net.ipv6.conf.all.forwarding=1" /etc/sysctl.conf; then
   echo "🔧 Mengaktifkan IPv6 forwarding..."
   echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
@@ -54,11 +54,11 @@ ULA_SUBNET=$(generate_ula_subnet)
 SERVER_IP="${ULA_SUBNET}::1/64"
 CLIENT_IP="${ULA_SUBNET}::2/64"
 
-echo "🌐 Subnet ULA yang digunakan: ${ULA_SUBNET}::/64"
+echo "🌐 Subnet ULA digunakan: ${ULA_SUBNET}::/64"
 echo "🖥️ IP server: ${SERVER_IP}"
 echo "📱 IP client: ${CLIENT_IP}"
 
-# Generate key
+# Generate keys
 mkdir -p /etc/wireguard/keys
 chmod 700 /etc/wireguard/keys
 
@@ -104,7 +104,7 @@ EOF
 
 chmod 600 ~/${CLIENT_CONF}
 
-# Enable & Start WireGuard
+# Aktifkan & jalankan WireGuard
 systemctl enable wg-quick@${WG_INTERFACE}
 systemctl start wg-quick@${WG_INTERFACE}
 
@@ -112,11 +112,11 @@ echo ""
 echo "✅ WireGuard IPv6-only VPN berhasil di-setup!"
 echo "📁 File konfigurasi klien: ~/${CLIENT_CONF}"
 
-# QR code
-echo "📱 QR Code untuk klien (scan via app WireGuard):"
+# QR code untuk klien
+echo "📱 QR Code untuk konfigurasi klien (scan via app WireGuard):"
 qrencode -t ansiutf8 < ~/${CLIENT_CONF}
 
-# Info SCP
+# Instruksi SCP
 echo ""
-echo "💾 Untuk download konfigurasi ke PC:"
+echo "📥 Untuk download konfigurasi ke PC kamu, jalankan:"
 echo "scp root@[${PUBLIC_IPV6}]:~/${CLIENT_CONF} ./"
