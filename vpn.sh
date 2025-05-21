@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WireGuard IPv6-only VPN installer with auto client config download & QR code
+# WireGuard IPv6-only VPN installer with auto dependency check, client config download & QR code
 
 WG_INTERFACE="wg0"
 WG_PORT="51820"
@@ -9,13 +9,32 @@ CLIENT_IP="fd86:ea04:1115::2/64"
 CLIENT_NAME="client"
 CLIENT_CONF="${CLIENT_NAME}.conf"
 
-# Update & install wireguard, ip6tables, qrencode, curl, openssh-server
+# Fungsi cek dan install paket kalau belum ada
+check_install() {
+  for pkg in "$@"; do
+    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+      echo "Paket $pkg belum terinstall. Menginstall..."
+      apt install -y "$pkg"
+    else
+      echo "Paket $pkg sudah terinstall."
+    fi
+  done
+}
+
+# Update repo dan upgrade dulu
 apt update && apt upgrade -y
-apt install -y wireguard ip6tables qrencode curl openssh-server
+
+# Cek dan install dependencies yang dibutuhkan
+check_install wireguard ip6tables qrencode curl openssh-server
 
 # Enable IPv6 forwarding
-sed -i '/net.ipv6.conf.all.forwarding/c\net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf
-sysctl -p
+if ! grep -q "^net.ipv6.conf.all.forwarding=1" /etc/sysctl.conf; then
+  echo "Mengaktifkan IPv6 forwarding..."
+  sed -i '/net.ipv6.conf.all.forwarding/c\net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf || echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+  sysctl -p
+else
+  echo "IPv6 forwarding sudah aktif."
+fi
 
 # Create keys directory
 mkdir -p /etc/wireguard/keys
